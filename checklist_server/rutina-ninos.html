@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuestro día</title>
+<style>
+  :root {
+    --bg: #fff4d6;
+    --card: #ffffff;
+    --ink: #2b2b3a;
+    --done: #8fd694;
+    --done-ink: #1f5a2a;
+    --accent: #ff7a59;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Trebuchet MS", "Comic Sans MS", system-ui, sans-serif;
+    padding: 16px;
+    user-select: none;
+  }
+  h1 {
+    text-align: center;
+    font-size: clamp(2rem, 6vw, 3.2rem);
+    margin: 8px 0 18px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 5px solid var(--accent); outline-offset: 3px; }
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 6px solid var(--ink);
+    border-radius: 28px;
+    padding: 20px 10px 16px;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: transform .12s, background .2s;
+  }
+  .card:active { transform: scale(.95); }
+  .icon { font-size: clamp(4.5rem, 14vw, 6.5rem); line-height: 1; }
+  .label { font-size: clamp(1.4rem, 4.5vw, 2rem); font-weight: 700; text-align: center; }
+  .check {
+    position: absolute; top: 10px; right: 14px;
+    font-size: 3rem; opacity: 0; transform: scale(.3);
+    transition: opacity .2s, transform .25s;
+  }
+  .card.done { background: var(--done); border-color: var(--done-ink); color: var(--done-ink); }
+  .card.done .icon { opacity: .55; }
+  .card.done .check { opacity: 1; transform: scale(1); }
+  #fin {
+    text-align: center; font-size: clamp(2rem, 7vw, 3.5rem);
+    min-height: 1.4em; margin-top: 18px;
+  }
+  .back {
+    display: block;
+    margin: 24px auto 8px;
+    background: var(--ink);
+    color: #fff;
+    border: 0;
+    border-radius: 999px;
+    padding: 18px 40px;
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<section id="home">
+  <h1>Nuestro día</h1>
+  <div class="grid" id="eventos"></div>
+</section>
+
+<section id="detalle" hidden>
+  <h1 id="titulo"></h1>
+  <div class="grid" id="tareas"></div>
+  <div id="fin" aria-live="polite"></div>
+  <button class="back" id="atras">⬅️ Atrás</button>
+</section>
+
+<script>
+  // Edita esta lista para cambiar eventos y tareas.
+  const EVENTOS = [
+    { icono: "🥛", texto: "Desayunar", tareas: [
+      ["🚽", "Hacer pis"], ["🧼", "Lavarse las manos"], ["🧃", "Elegir leche o zumo"],
+      ["🍪", "Comer galletas"], ["🪥", "Lavarse los dientes"] ] },
+    { icono: "🧸", texto: "Jugar", tareas: [
+      ["🎲", "Elegir juguete"], ["🧸", "Jugar"], ["🧺", "Recoger juguetes"] ] },
+    { icono: "🍎", texto: "Almorzar", tareas: [
+      ["🧼", "Lavarse las manos"], ["🪑", "Sentarse"], ["🍌", "Almorzar"], ["💧", "Beber agua"] ] },
+    { icono: "🍝", texto: "Comer", tareas: [
+      ["🧺", "Recoger juguetes"], ["🧼", "Lavarse las manos"], ["🪑", "Sentarse a la mesa"],
+      ["🍝", "Comer"], ["💧", "Beber agua"], ["🪥", "Lavarse los dientes"] ] },
+    { icono: "🛋️", texto: "Descansar", tareas: [
+      ["🚽", "Ir al baño"], ["📖", "Elegir un cuento"], ["😌", "Descansar"] ] },
+    { icono: "🥪", texto: "Merendar", tareas: [
+      ["🧼", "Lavarse las manos"], ["🪑", "Sentarse"], ["🥪", "Merendar"], ["💧", "Beber agua"] ] },
+    { icono: "⚽", texto: "Jugar", tareas: [
+      ["⚽", "Jugar"], ["🧺", "Recoger juguetes"] ] },
+    { icono: "🍲", texto: "Cenar", tareas: [
+      ["🧼", "Lavarse las manos"], ["🍴", "Ayudar a poner la mesa"], ["🍲", "Cenar"],
+      ["💧", "Beber agua"], ["🪥", "Lavarse los dientes"] ] },
+    { icono: "🌙", texto: "A dormir", tareas: [
+      ["👕", "Ponerse el pijama"], ["🚽", "Ir al baño"], ["🪥", "Lavarse los dientes"],
+      ["📖", "Leer un cuento"], ["😴", "Buenas noches"] ] }
+  ];
+
+  const home = document.getElementById("home");
+  const detalle = document.getElementById("detalle");
+  const eventos = document.getElementById("eventos");
+  const tareas = document.getElementById("tareas");
+  const titulo = document.getElementById("titulo");
+  const fin = document.getElementById("fin");
+
+  function card(icono, texto, extra) {
+    const b = document.createElement("button");
+    b.className = "card";
+    b.innerHTML = (extra || "") +
+      '<span class="icon">' + icono + '</span>' +
+      '<span class="label">' + texto + '</span>';
+    return b;
+  }
+
+  EVENTOS.forEach(ev => {
+    const b = card(ev.icono, ev.texto);
+    b.addEventListener("click", () => abrir(ev));
+    eventos.appendChild(b);
+  });
+
+  function abrir(ev) {
+    titulo.textContent = ev.icono + " " + ev.texto;
+    tareas.innerHTML = "";
+    fin.textContent = "";
+    ev.tareas.forEach(t => {
+      const b = card(t[0], t[1], '<span class="check">✅</span>');
+      b.setAttribute("aria-pressed", "false");
+      b.addEventListener("click", () => {
+        const on = b.classList.toggle("done");
+        b.setAttribute("aria-pressed", on);
+        const todas = tareas.querySelectorAll(".card").length;
+        const hechas = tareas.querySelectorAll(".card.done").length;
+        fin.textContent = todas === hechas ? "🎉⭐ ¡Muy bien! ⭐🎉" : "";
+      });
+      tareas.appendChild(b);
+    });
+    home.hidden = true;
+    detalle.hidden = false;
+    window.scrollTo(0, 0);
+  }
+
+  document.getElementById("atras").addEventListener("click", () => {
+    detalle.hidden = true;
+    home.hidden = false;
+    window.scrollTo(0, 0);
+  });
+</script>
+</body>
+</html>
