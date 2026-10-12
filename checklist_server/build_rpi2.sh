@@ -2,9 +2,10 @@
 # Crosscompile and deploy into RPi2
 # go mod init checklist
 set -e
+cd "$(dirname "$0")"
 TARGET_DEVICE=raspberrypi2.local
 WHEREAMI=$(hostname -f)
-if [ $WHEREAMI = "raspberrypi3-64" ]; then
+if [ "$WHEREAMI" = "raspberrypi3-64" ]; then
     cd /root/projects/golang_training/checklist_server/.
 fi
 CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -o checklist .
